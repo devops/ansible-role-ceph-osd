@@ -1,0 +1,6 @@
+---
+# defaults file for ansible-role-ceph-osd
+
+ceph_cluster_name: "ceph"
+ceph_cluster_uuid: "80605375-25ef-46b0-afee-97aff959463f"
+ceph_osd_only: False

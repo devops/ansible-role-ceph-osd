@@ -1,0 +1,44 @@
+---
+# tasks file for ansible-role-ceph-osd
+
+- name: Install dependencies.
+  yum: name=parted state=present
+
+- name: Copy OSD bootstrap key.
+  copy: src=fetch/{{ ceph_fsid }}/{{ groups['ceph-mon'][0] }}/var/lib/ceph/bootstrap-osd/ceph.keyring dest=/var/lib/ceph/bootstrap-osd/ceph.keyring owner=root group=root mode=600
+  when: cephx and ceph_osd_only == True
+
+- name: Check if the device is a partition or a disk.
+  shell: echo '{{ item }}' | egrep '/dev/(([a-z]{3,4}[0-9]$)|(cciss/c[0-9]{1}d[0-9]{1}p[0-9]$))'
+  ignore_errors: true
+  with_items: devices
+  register: ispartition
+  changed_when: False
+
+- name: If partition named 'ceph' exists.
+  shell: parted --script {{ item }} print | egrep -sq '^ 1.*ceph'
+  ignore_errors: True
+  with_items: devices
+  register: parted
+  changed_when: False
+
+# - name: Prepare the OSD.
+#   shell: ceph-disk prepare --cluster {cluster-name} --cluster-uuid {uuid} --fs-type {ext4|xfs|btrfs} {data-path} [{journal-path}]
+#
+# - name: Activate the OSD.
+#   shell: ceph-disk activate {data-path} [--activate-key {path}]
+
+- name: Prepare OSD disk(s).
+  command: ceph-disk prepare {{ item.1 }}
+  when: item.0.rc != 0
+  with_together:
+    - parted.results
+    - devices
+
+- name: Activate OSD(s).
+  command: ceph-disk activate {{ item }}1
+  with_items: devices
+  changed_when: False
+
+- name: Start and add that the OSD service to the init sequence.
+  service: name=ceph state=started enabled=yes
