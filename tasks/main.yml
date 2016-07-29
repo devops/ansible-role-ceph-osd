@@ -11,14 +11,16 @@
 - name: Check if the device is a partition or a disk.
   shell: echo '{{ item }}' | egrep '/dev/(([a-z]{3,4}[0-9]$)|(cciss/c[0-9]{1}d[0-9]{1}p[0-9]$))'
   ignore_errors: true
-  with_items: devices
+  with_items:
+    - "{{ devices }}"
   register: ispartition
   changed_when: False
 
 - name: If partition named 'ceph' exists.
   shell: parted --script {{ item }} print | egrep -sq '^ 1.*ceph'
   ignore_errors: True
-  with_items: devices
+  with_items:
+    - "{{ devices }}"
   register: parted
   changed_when: False
 
@@ -32,12 +34,13 @@
   command: ceph-disk prepare {{ item.1 }}
   when: item.0.rc != 0
   with_together:
-    - parted.results
-    - devices
+    - "{{ parted.results }}"
+    - "{{ devices }}"
 
 - name: Activate OSD(s).
   command: ceph-disk activate {{ item }}1
-  with_items: devices
+  with_items:
+    - "{{ devices }}"
   changed_when: False
 
 - name: Start and add that the OSD service to the init sequence.
