@@ -2,10 +2,17 @@
 # tasks file for ansible-role-ceph-osd
 
 - name: Install dependencies.
-  yum: name=parted state=present
+  yum:
+    name: parted
+    state: present
 
 - name: Copy OSD bootstrap key.
-  copy: src=fetch/{{ ceph_fsid }}/{{ groups['ceph-mon'][0] }}/var/lib/ceph/bootstrap-osd/ceph.keyring dest=/var/lib/ceph/bootstrap-osd/ceph.keyring owner=root group=root mode=600
+  copy:
+    src: "{{ inventory_dir }}/fetch/{{ ceph_fsid }}/{{ groups['ceph-mon'][0] }}/var/lib/ceph/bootstrap-osd/ceph.keyring"
+    dest: /var/lib/ceph/bootstrap-osd/ceph.keyring
+    owner: root
+    group: root
+    mode: 600
   when: cephx and ceph_osd_only == True
 
 - name: Check if the device is a partition or a disk.
@@ -44,4 +51,7 @@
   changed_when: False
 
 - name: Start and add that the OSD service to the init sequence.
-  service: name=ceph state=started enabled=yes
+  service:
+    name: ceph
+    state: started
+    enabled: yes
